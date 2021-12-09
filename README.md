@@ -38,7 +38,7 @@ This script will launch a new Contrast demo "virtual developer workstation".  It
 **Usage:** `./demo_contrast.sh [demo version] [customer name or description] [your name] [your target AWS region] [hours to keep demo running]`
 
 **Example:**
-`./demo_contrast.sh default 'Acme Corp' 'Brian Chau' us-west-1 2`
+`./demo_contrast.sh default 'Johns Demo Instance' 'John Smith' us-west-1 2`
 <br/>
 
 ### deregister_ami_across_regions.sh
