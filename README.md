@@ -15,6 +15,15 @@ This script will add a new AWS security group inbound TCP rule for the user-spec
 `./add_ingress_ports_to_demo_security_groups.sh 8080`
 <br/>
 
+### add_my_ip_to_demo_security_group.sh
+This script will add a new AWS security group inbound TCP rule
+for RDP (3389) using the current IP address for the specified region.</br>
+**Usage:** `./add_my_ip_to_demo_security_group.sh [your target AWS region]
+
+**Example:**
+`./add_my_ip_to_demo_security_group.sh us-east-1`
+<br/>
+
 ### copy_ami_to_all_regions.sh
 This script will copy a source AMI across all AWS regions.  The source AMI is identified based on its name and source AWS region.<br/>
 **Usage:** `./copy_ami_to_all_regions.sh [source AMI name] [source region]`

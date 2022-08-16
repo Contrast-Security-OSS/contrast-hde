@@ -23,6 +23,7 @@ PUBLIC_IP=""
 PING_COUNT=3
 DESKTOP_WIDTH=2560
 DESKTOP_HEIGHT=1600
+GROUP_NAME=ContrastDemo
 
 # Check if all expected arguments were provided
 if [[ $# -ne 5 ]]; then
@@ -96,6 +97,10 @@ TAG_NAME="${CUSTOMER}-${CONTACT}"
 if [ ! -d "logs" ]; then
   mkdir -p logs
 fi
+
+# Add current IP to ContrastDemo security group
+CURRENT_IP=$(curl -s https://checkip.amazonaws.com)
+ADD_IP_TO_DEMO_SG=$(aws --profile $HDE_PROFILE_NAME --region $REGION_AWS ec2 authorize-security-group-ingress --group-name $GROUP_NAME --protocol tcp --port 3389 --cidr $CURRENT_IP/32)
 
 # Launch the AWS EC2 instance
 LAUNCH_INSTANCE=$(aws --profile $HDE_PROFILE_NAME ec2 run-instances \
