@@ -98,7 +98,7 @@ if [ ! -d "logs" ]; then
 fi
 
 # Get Default VPC ID
-DEFAULT_VPC_ID=$(aws --profile $HDE_PROFILE_NAME --region $REGION_AWS ec2 describe-vpcs --filters "Name=is-default,Values=true" --query "Vpcs[0].VpcId")
+DEFAULT_VPC_ID=$(aws --profile $HDE_PROFILE_NAME --region $REGION_AWS ec2 describe-vpcs --filters "Name=is-default,Values=true" --query "Vpcs[0].VpcId" | grep -o "vpc-[a-zA-Z0-9_]*")
 
 # Define security group name
 GROUP_NAME=ContrastDemo-$(echo $CONTACT | tr " " "-")
