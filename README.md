@@ -17,11 +17,11 @@ This script will add a new AWS security group inbound TCP rule for the user-spec
 
 ### add_my_ip_to_demo_security_group.sh
 This script will add a new AWS security group inbound TCP rule
-for RDP (3389) using the current IP address for the specified region.</br>
+for RDP (3389) using the current IP address for the specified region and security group.</br>
 **Usage:** `./add_my_ip_to_demo_security_group.sh [your target AWS region]
 
 **Example:**
-`./add_my_ip_to_demo_security_group.sh us-east-1`
+`./add_my_ip_to_demo_security_group.sh us-east-1 ContrastDemo-Sam-Spade`
 <br/>
 
 ### copy_ami_to_all_regions.sh
