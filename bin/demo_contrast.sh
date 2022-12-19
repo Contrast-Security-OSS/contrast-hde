@@ -23,7 +23,6 @@ PUBLIC_IP=""
 PING_COUNT=3
 DESKTOP_WIDTH=2560
 DESKTOP_HEIGHT=1600
-GROUP_NAME=ContrastDemo
 
 # Check if all expected arguments were provided
 if [[ $# -ne 5 ]]; then
@@ -98,16 +97,46 @@ if [ ! -d "logs" ]; then
   mkdir -p logs
 fi
 
-# Add current IP to ContrastDemo security group
+# Get Default VPC ID
+DEFAULT_VPC_ID=$(aws --profile $HDE_PROFILE_NAME --region $REGION_AWS ec2 describe-vpcs --filters "Name=is-default,Values=true" --query "Vpcs[0].VpcId")
+
+# Define security group name
+GROUP_NAME=ContrastDemo-$(echo $CONTACT | tr " " "-")
+
+# Check if security group already exists
+DESCRIBE_SG=$(aws --profile $HDE_PROFILE_NAME --region $REGION_AWS ec2 describe-security-groups --filters "Name=group-name,Values=$GROUP_NAME" --query "SecurityGroups[0].GroupName")
+if [ $DESCRIBE_SG ] && [ $DESCRIBE_SG != "null" ]; then
+  echo "Found existing security group: $DESCRIBE_SG"
+else
+  # Create a security group
+  echo "Security group: $GROUP_NAME not found. Creating..."
+  CREATE_SG=$(aws --profile $HDE_PROFILE_NAME --region $REGION_AWS ec2 create-security-group --group-name "$GROUP_NAME" --description "$CONTACT" --vpc-id $DEFAULT_VPC_ID)
+fi
+
+# Get current IP address
 CURRENT_IP=$(curl -s https://checkip.amazonaws.com)
-ADD_IP_TO_DEMO_SG=$(aws --profile $HDE_PROFILE_NAME --region $REGION_AWS ec2 authorize-security-group-ingress --group-name $GROUP_NAME --protocol tcp --port 3389 --cidr $CURRENT_IP/32)
+
+# Check if current IP address is in security group
+SG_IP=$(aws --profile $HDE_PROFILE_NAME \
+--region $REGION_AWS ec2 describe-security-groups \
+--filters "Name=group-name,Values=$GROUP_NAME" "Name=ip-permission.from-port,Values=3389" "Name=ip-permission.to-port,Values=3389" "Name=ip-permission.cidr,Values=$CURRENT_IP/32" \
+--query "SecurityGroups[0].IpPermissions[*].IpRanges[*].{CidrIp:CidrIp}")
+
+if [ $SG_IP ] && [ $SG_IP != "null" ]; then
+  echo "IP address: $CURRENT_IP already in security group: $GROUP_NAME"
+else
+  # Add current IP to security group
+  echo "IP: $CURRENT_IP not in security group: $GROUP_NAME"
+  echo "Adding IP: $CURRENT_IP to security group: $GROUP_NAME"
+  ADD_IP_TO_DEMO_SG=$(aws --profile $HDE_PROFILE_NAME --region $REGION_AWS ec2 authorize-security-group-ingress --group-name "$GROUP_NAME" --protocol tcp --port 3389 --cidr $CURRENT_IP/32)
+fi
 
 # Launch the AWS EC2 instance
 LAUNCH_INSTANCE=$(aws --profile $HDE_PROFILE_NAME ec2 run-instances \
 --image-id $AMI_ID \
 --count 1 \
 --instance-type $INSTANCE_TYPE \
---security-groups 'ContrastDemo' \
+--security-groups "$GROUP_NAME" \
 --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=${TAG_NAME}},{Key=Owner,Value=${CONTACT}},{Key=Demo-Version,Value=${VERSION}},{Key=x-purpose,Value='demo'},{Key=x-creation-timestamp,Value=${CREATION_TIMESTAMP}}]" \
 --block-device-mapping "DeviceName=/dev/sda1,Ebs={DeleteOnTermination=true}" \
 --region=$REGION_AWS \

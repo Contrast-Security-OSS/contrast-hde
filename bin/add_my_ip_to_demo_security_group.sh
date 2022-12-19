@@ -1,9 +1,9 @@
 
 # Variables
-USAGE="Usage: $0 [your target AWS region]\n\nExample:\n$0 us-east-1"
-HDE_PROFILE_NAME=contrast-hde
-GROUP_NAME=ContrastDemo
+USAGE="Usage: $0 [your target AWS region] [your security group name]\n\nExample:\n$0 us-east-1 ContrastDemo-Sam-Spade"
 REGION_AWS=$1
+GROUP_NAME=$2
+HDE_PROFILE_NAME=contrast-hde
 
 if [[ $# -ne 1 ]]; then
   echo -e $USAGE
