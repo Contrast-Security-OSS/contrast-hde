@@ -15,9 +15,6 @@ TTL_BUFFER=2 # Number of additional $ALARM_PERIOD duration buffers before automa
 TTL_PERIODS=0
 CREATION_TIMESTAMP="$(date '+%Y-%m-%d %H:%M:%S')"
 INSTANCE_TYPE=t3.xlarge
-# AWS_DIR=~/.aws
-# AWS_CONFIG_FILE=~/.aws/config
-# AWS_CRED_FILE=~/.aws/credentials
 HDE_PROFILE_NAME=contrast-hde
 NETSKOPE_IP_CIDR="163.116.128.0/17"
 PUBLIC_IP=""
@@ -31,63 +28,18 @@ if [[ $# -ne 5 ]]; then
   exit 1
 fi
 
-HDE_PROFILE_EXISTS=$(aws configure list-profiles | grep -q $HDE_PROFILE_NAME)
+aws configure list-profiles | grep -q $HDE_PROFILE_NAME
+retVal=$?
 
-if [ ! $HDE_PROFILE_EXISTS]; then
+if [ $retVal -ne 0 ]; then
+  echo "$HDE_PROFILE_NAME does not exist..";
+  echo "Please run 'aws configure sso --profile $HDE_PROFILE_NAME' to configure your AWS SSO profile.";
+  exit 1
+else
   echo "$HDE_PROFILE_NAME already exists.."
   echo "Logging in to $HDE_PROFILE_NAME profile.."
   aws sso login --profile $HDE_PROFILE_NAME
-else
-  echo "$HDE_PROFILE_NAME does not exist.."
-  echo "Creating $HDE_PROFILE_NAME profile.."
-  aws configure sso --profile $HDE_PROFILE_NAME
 fi
-
-
-# Create directory and files for AWS access info if they do not exist
-# if [ ! -d $AWS_DIR ]; then
-#   mkdir -p $AWS_DIR
-# fi
-
-# if [ -e $AWS_CONFIG_FILE ]
-# then
-#   # Backup existing AWS config
-#   cp $AWS_CONFIG_FILE ~/.aws/config.bak
-# else
-#   echo -e "Creating ${AWS_CONFIG_FILE}..."
-#   touch $AWS_CONFIG_FILE
-# fi
-
-# if [ -e $AWS_CRED_FILE ]
-# then
-#   # Backup existing AWS credentials files
-#   cp $AWS_CRED_FILE ~/.aws/credentials.bak
-# else
-#   echo -e "Creating ${AWS_CRED_FILE}..."
-#   touch $AWS_CRED_FILE
-# fi
-
-# Check if the AWS config file already has the `contrast-hde` profile and configure if not
-# if ! grep -Fxq "[profile ${HDE_PROFILE_NAME}]" $AWS_CONFIG_FILE
-# then
-#   # Configure the AWS config file
-#   echo "Configuring ${AWS_CONFIG_FILE}... "
-#   echo -e "\n[profile ${HDE_PROFILE_NAME}]\nregion = ${REGION_AWS}\noutput = json" >> $AWS_CONFIG_FILE
-# fi
-
-# Check if the AWS credentials file already has the `contrast-hde` profile and configure if not
-# if ! grep -Fxq "[${HDE_PROFILE_NAME}]" $AWS_CRED_FILE
-# then
-#   # Get user's AWS access and secret keys
-#   echo -e "Enter the Contrast demo environment AWS Access Key:"
-#   read AWS_ACCESS_KEY
-#   echo -e "Enter the Contrast demo environment AWS Secret Access Key:"
-#   read AWS_SECRET_KEY
-
-  # Configure the AWS credential files to contain necessary keys
-#   echo "Configuring ${AWS_CRED_FILE}... "
-#   echo -e "\n[${HDE_PROFILE_NAME}]\naws_access_key_id = ${AWS_ACCESS_KEY}\naws_secret_access_key = ${AWS_SECRET_KEY}" >> $AWS_CRED_FILE
-# fi
 
 # Get the AMI ID of the latest HDE "Golden Image"
 # The 'default' AMI name is hde-0.1.0 as of August 31, 2018.
