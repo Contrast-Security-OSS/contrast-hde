@@ -37,8 +37,22 @@ if [ $retVal -ne 0 ]; then
   exit 1
 else
   echo "$HDE_PROFILE_NAME already exists.."
-  echo "Logging in to $HDE_PROFILE_NAME profile.."
-  aws sso login --profile $HDE_PROFILE_NAME
+  echo "Logging out of $HDE_PROFILE_NAME profile.."
+  aws sso logout --profile $HDE_PROFILE_NAME
+  retVal=$?
+  if [ $retVal -ne 0 ]; then
+    echo "ERROR: Failed to logout of $HDE_PROFILE_NAME profile."
+    exit 1
+  else
+    echo "Logged out of $HDE_PROFILE_NAME profile."
+    echo "Logging in to $HDE_PROFILE_NAME profile.."
+    aws sso login --profile $HDE_PROFILE_NAME
+    retVal=$?
+    if [ $retVal -ne 0 ]; then
+      echo "ERROR: Failed to login to $HDE_PROFILE_NAME profile."
+      exit 1
+    fi
+  fi
 fi
 
 # Get the AMI ID of the latest HDE "Golden Image"
