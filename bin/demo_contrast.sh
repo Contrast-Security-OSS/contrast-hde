@@ -61,7 +61,7 @@ if [[ $VERSION = default ]]; then
   VERSION=$DEFAULT_DEMO_AMI # This value should be set to the name of the latest Contrast demo AMI
 fi
 echo "${CREATION_TIMESTAMP} - Input version is: ${VERSION}"
-AMI_ID="$(aws --profile ${HDE_PROFILE_NAME} ec2 describe-images --filters "Name=name,Values=${VERSION}" --region=${REGION_AWS} | grep -o "ami-[a-zA-Z0-9_]*")"
+AMI_ID="$(aws --profile ${HDE_PROFILE_NAME} ec2 describe-images --filters "Name=name,Values=${VERSION}" --region=${REGION_AWS} | grep -o "ami-[a-zA-Z0-9_]*" | head -1)"
 if [ ! -z $AMI_ID ]; then
   echo "Found matching AMI (${AMI_ID})..."
 else
