@@ -24,7 +24,7 @@ PUBLIC_IP=""
 RED=$(tput setaf 1)
 GREEN=$(tput setaf 2)
 YELLOW=$(tput setaf 3)
-BLUE=$(tput setaf 4)
+BLUE=$(tput setaf 6)
 WHITE=$(tput setaf 7)
 GREY=$(tput setaf 8)
 RESET=$(tput sgr0)
@@ -42,7 +42,7 @@ print_warning() {
 }
 
 print_info() {
-  echo -e "${BLUE}INFO: $1${RESET}"
+  echo -e "${WHITE}INFO: $1${RESET}"
 }
 
 print_normal() {
