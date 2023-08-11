@@ -66,10 +66,12 @@ main() {
   # Check if jq is installed
   JQ_INSTALLED=$(command -v jq)
   if [[ -z $JQ_INSTALLED ]]; then
-    print_error "jq is not installed.  Aborting."
-    exit 1
+    print_warning "jq is not installed."
+    print_warning "jq will be required in the future and this will become an error."
+    print_warning "Please install jq."
   else
     print_success "jq is installed."
+    print_success "You are good to go for the future jq requirement."
   fi
 
   # Check if AWS CLI is able to connect to AWS
