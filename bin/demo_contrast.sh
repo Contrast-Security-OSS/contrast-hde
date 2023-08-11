@@ -3,7 +3,7 @@
 # This script is meant to be run on MacOS
 
 # Variables
-DEFAULT_DEMO_AMI="PlatformDemo-1.3a" # This value should updated whenever a new AMI for the Contrast demo "golden image" is created
+DEFAULT_DEMO_AMI="PlatformDemo-1.3b" # This value should updated whenever a new AMI for the Contrast demo "golden image" is created
 USAGE="Usage: $0 [demo version] [customer name or description] [your name] [your target AWS region] [hours to keep demo running]\n\nExample:\n$0 default 'Acme Corp' 'Sam Spade' us-west-1 2"
 VERSION=$1
 CUSTOMER=$2
@@ -22,16 +22,23 @@ PING_COUNT=3
 DESKTOP_WIDTH=2560
 DESKTOP_HEIGHT=1600
 
+# Text Colors
+ERROR="$(tput setaf 1)"
+SUCCESS="$(tput setaf 2)"
+WARNING="$(tput setaf 3)"
+ENDCOLOR="$(tput setaf 7)"
+
 # Check if all expected arguments were provided
 if [[ $# -ne 5 ]]; then
   echo -e $USAGE
   exit 1
 fi
 
+# Check if AWS CLI is installed and configured
 aws configure list-profiles | grep -q $HDE_PROFILE_NAME
 retVal=$?
 
-if [ $retVal -ne 0 ]; then
+if [[ $retVal -ne 0 ]]; then
   echo "$HDE_PROFILE_NAME does not exist..";
   echo "Please run 'aws configure sso --profile $HDE_PROFILE_NAME' to configure your AWS SSO profile.";
   exit 1
@@ -40,32 +47,31 @@ else
   echo "Logging out of $HDE_PROFILE_NAME profile.."
   aws sso logout --profile $HDE_PROFILE_NAME
   retVal=$?
-  if [ $retVal -ne 0 ]; then
-    echo "ERROR: Failed to logout of $HDE_PROFILE_NAME profile."
+  if [[ $retVal -ne 0 ]]; then
+    echo "${ERROR}ERROR: Failed to logout of $HDE_PROFILE_NAME profile."
     exit 1
   else
-    echo "Logged out of $HDE_PROFILE_NAME profile."
+    echo "${SUCCESS}Successfully logged out of $HDE_PROFILE_NAME profile.${ENDCOLOR}"
     echo "Logging in to $HDE_PROFILE_NAME profile.."
     aws sso login --profile $HDE_PROFILE_NAME
     retVal=$?
-    if [ $retVal -ne 0 ]; then
-      echo "ERROR: Failed to login to $HDE_PROFILE_NAME profile."
+    if [[ $retVal -ne 0 ]]; then
+      echo "${ERROR}ERROR: Failed to login to $HDE_PROFILE_NAME profile."
       exit 1
     fi
   fi
 fi
 
 # Get the AMI ID of the latest HDE "Golden Image"
-# The 'default' AMI name is hde-0.1.0 as of August 31, 2018.
 if [[ $VERSION = default ]]; then
   VERSION=$DEFAULT_DEMO_AMI # This value should be set to the name of the latest Contrast demo AMI
 fi
 echo "${CREATION_TIMESTAMP} - Input version is: ${VERSION}"
 AMI_ID="$(aws --profile ${HDE_PROFILE_NAME} ec2 describe-images --filters "Name=name,Values=${VERSION}" --region=${REGION_AWS} | grep -o "ami-[a-zA-Z0-9_]*" | head -1)"
-if [ ! -z $AMI_ID ]; then
-  echo "Found matching AMI (${AMI_ID})..."
+if [[ ! -z $AMI_ID ]]; then
+  echo "${SUCCESS}Found matching AMI (${AMI_ID})..."
 else
-  echo "ERROR: Could not find matching AMI named ${VERSION} in the ${REGION_AWS} region."
+  echo "${ERROR}ERROR: Could not find matching AMI named ${VERSION} in the ${REGION_AWS} region."
   exit 1
 fi
 
@@ -73,7 +79,7 @@ fi
 TAG_NAME="${CUSTOMER}-${CONTACT}"
 
 # Create log directory if it does not already exist
-if [ ! -d "logs" ]; then
+if [[ ! -d "logs" ]]; then
   mkdir -p logs
 fi
 
@@ -85,16 +91,17 @@ GROUP_NAME=ContrastDemo-$(echo $CONTACT | tr " " "-")
 
 # Check if security group already exists
 DESCRIBE_SG=$(aws --profile $HDE_PROFILE_NAME --region $REGION_AWS ec2 describe-security-groups --filters "Name=group-name,Values=$GROUP_NAME" --query "SecurityGroups[0].GroupName")
-if [ $DESCRIBE_SG ] && [ $DESCRIBE_SG != "null" ]; then
-  echo "Found existing security group: $DESCRIBE_SG"
+if [[ $DESCRIBE_SG ]] && [[ $DESCRIBE_SG != "null" ]]; then
+  echo "${SUCCESS}Found existing security group: ${DESCRIBE_SG}${ENDCOLOR}"
 else
   # Create a security group
-  echo "Security group: $GROUP_NAME not found. Creating..."
+  echo "${WARNING}Security group: $GROUP_NAME not found. Creating...${ENDCOLOR}"
   CREATE_SG=$(aws --profile $HDE_PROFILE_NAME --region $REGION_AWS ec2 create-security-group --group-name "$GROUP_NAME" --description "$CONTACT" --vpc-id $DEFAULT_VPC_ID)
 fi
 
 # Get current IP address
 CURRENT_IP=$(curl -s https://checkip.amazonaws.com)
+echo "Current IP Address is: ${CURRENT_IP}"
 
 # Check if current IP address is in security group
 SG_IP=$(aws --profile $HDE_PROFILE_NAME \
@@ -102,7 +109,7 @@ SG_IP=$(aws --profile $HDE_PROFILE_NAME \
 --filters "Name=group-name,Values=$GROUP_NAME" "Name=ip-permission.from-port,Values=3389" "Name=ip-permission.to-port,Values=3389" "Name=ip-permission.cidr,Values=$CURRENT_IP/32" \
 --query "SecurityGroups[0].IpPermissions[*].IpRanges[*].{CidrIp:CidrIp}")
 
-if [ $SG_IP ] && [ $SG_IP != "null" ]; then
+if [[ "$SG_IP" ]] && [[ "$SG_IP" != "null" ]]; then
   echo "IP address: $CURRENT_IP already in security group: $GROUP_NAME"
 else
   # Add current IP to security group
@@ -123,7 +130,7 @@ LAUNCH_INSTANCE=$(aws --profile $HDE_PROFILE_NAME ec2 run-instances \
 --region=$REGION_AWS \
 > "logs/demo_instance_${REGION_AWS}_${CREATION_TIMESTAMP}.log")
 
-if [ $LAUNCH_INSTANCE ]; then
+if [[ $LAUNCH_INSTANCE ]]; then
   echo "Something went wrong, launching the EC2 instance failed!  Please try again or contact the Contrast Sales Engineering team for assistance."
   exit 1
 fi
@@ -131,22 +138,22 @@ fi
 # Get the Instance ID of the newly created instance
 INSTANCEID="$(aws --profile ${HDE_PROFILE_NAME} ec2 describe-instances --region=${REGION_AWS} --filters "Name=tag:Name,Values=${TAG_NAME}" "Name=instance-state-name,Values=pending" | grep InstanceId | grep -o "i-[a-zA-Z0-9_]*")"
 
-if [ ! -z $INSTANCEID ]; then
+if [[ ! -z $INSTANCEID ]]; then
   echo -e "\nLaunching Contrast virtual Windows developer workstation..."
 
   # Get public IP address of the newly created instance
   PUBLIC_IP="$(aws --profile ${HDE_PROFILE_NAME} ec2 describe-instances --region=${REGION_AWS} --filters "Name=tag:Name,Values=${TAG_NAME}" "Name=instance-id,Values=${INSTANCEID}" | grep PublicIpAddress | grep -Eo "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}")"
-  echo -e "  InstanceID: ${INSTANCEID}"
-  echo -e "  Public IP: ${PUBLIC_IP}"
+  echo -e "${SUCCESS}  InstanceID: ${INSTANCEID}${ENDCOLOR}"
+  echo -e "${SUCCESS}  Public IP: ${PUBLIC_IP}${ENDCOLOR}"
   echo -e "\nWait about 10 minutes, then open your remote desktop client and connect to ${PUBLIC_IP} as 'Administrator'."
   echo -e "If you do not know the password, please ask your friendly neighborhood sales engineer."
 
-  if [ $TTL -gt 0 ]; then
+  if [[ $TTL -gt 0 ]]; then
     # Check if the TTL value is greater than 24, and if so, then set it to the maximum alarm duration allowed by CloudWatch, which is 24
-    if [ $TTL -gt 23 ]; then
+    if [[ $TTL -gt 23 ]]; then
       TTL=24
       TTL_PERIODS=$(expr $TTL \* 3600 / $ALARM_PERIOD)
-      echo -e "\nThe maximum allowed CloudWatch alarm duration is 24 hours.  Resetting the auto-termination alarm to trigger after 24 hours."
+      echo -e "${WARNING}\nThe maximum allowed CloudWatch alarm duration is 24 hours.  Resetting the auto-termination alarm to trigger after 24 hours."
     else
       TTL_PERIODS=$(expr $TTL \* 3600 / $ALARM_PERIOD + $TTL_BUFFER)
     fi
@@ -168,36 +175,42 @@ if [ ! -z $INSTANCEID ]; then
     --dimensions "Name=InstanceId,Value=${INSTANCEID}" \
     --alarm-actions arn:aws:automate:$REGION_AWS:ec2:terminate)
 
-    if [ $TERMINATION_ALARM ]; then
+    if [[ $TERMINATION_ALARM ]]; then
       aws --profile $HDE_PROFILE_NAME --region=${REGION_AWS} ec2 terminate-instances --instance-ids $INSTANCEID
-      echo "Something went wrong, setting the alarm to automatically terminate this instance failed!  Please try again or contact the Contrast Sales Engineering team for assistance."
+      echo "${ERROR}Something went wrong, setting the alarm to automatically terminate this instance failed!  Please try again or contact the Contrast Sales Engineering team for assistance.${ENDCOLOR}"
       exit 1
     else
-      echo -e "\nYour workstation will automatically terminate after ${TTL} hour(s)."
+      echo -e "${WARNING}\nYour workstation will automatically terminate after ${TTL} hour(s).${ENDCOLOR}"
     fi
   else
     # No alarm will be set and this instance will need to be auto-terminated
-    echo -e "\n*** PLEASE NOTE THAT THIS NEW INSTANCE WILL NOT BE AUTOMATICALLY TERMINATED ***"
+    echo -e "${ERROR}\n*** PLEASE NOTE THAT THIS NEW INSTANCE WILL NOT BE AUTOMATICALLY TERMINATED ***${ENDCOLOR}"
   fi
 
   # Sleep 2 minutes and then check if the new instance is network accessible
-  echo -e "\nNow let's wait for 2 minutes and then check if the instance is ready..."
-  sleep 120
+  echo -e "\nNow let's wait for 3 minutes and then check if the instance is ready..."
+  sleep 180
 
   # Check if the new instance is publicly accessible every 10 seconds
+  COUNTER=0
   while true; do
     NC_RESPONSE="$(nc -zv -G 1 ${PUBLIC_IP} 3389 &> /dev/null && echo "Online" || echo "Offline")"
-    if [ "${NC_RESPONSE}" = "Online" ]
+    if [[ "${NC_RESPONSE}" = "Online" ]]
     then
-      echo "$NC_RESPONSE"
+      echo "${SUCCESS}${NC_RESPONSE}${ENDCOLOR}"
       # If the instance is available, then launch Microsoft Remote Desktop to connect
       echo -e "Opening Microsoft Remote Desktop session to your new virtual Windows developer workstation!"
       open -Fa /Applications/Microsoft\ Remote\ Desktop.app "rdp://full%20address=s:${PUBLIC_IP}&audiomode=i:0&disable%20themes=i:1&screen%20mode%20id=i:2&smart%20sizing=i:1&username=s:Administrator&session%20bpp=i:32&allow%20font%20smoothing=i:1&prompt%20for%20credentials%20on%20client=i:0&disable%20full%20window%20drag=i:1&autoreconnection%20enabled=i:1"
       # open -Fa /Applications/Microsoft\ Remote\ Desktop.app "rdp://full%20address=s:${PUBLIC_IP}&audiomode=i:0&disable%20themes=i:1&desktopwidth:i:${DESKTOP_WIDTH}&desktopheight:i:${DESKTOP_HEIGHT}&screen%20mode%20id=i:2&smart%20sizing=i:1&username=s:Administrator&session%20bpp=i:32&allow%20font%20smoothing=i:1&prompt%20for%20credentials%20on%20client=i:0&disable%20full%20window%20drag=i:1&autoreconnection%20enabled=i:1"
       break
     else
-      echo "$NC_RESPONSE"
+      echo "${WARNING}${NC_RESPONSE}${ENDCOLOR}"
       sleep 10
+      COUNTER=$((COUNTER+1))
+      if [[ $COUNTER -gt 30 ]]; then
+        echo -e "${ERROR}Something went wrong, the new instance is not network accessible!  Please try again or contact the Contrast Sales Engineering team for assistance.${ENDCOLOR}"
+        exit 1
+      fi
     fi
   done
 fi
