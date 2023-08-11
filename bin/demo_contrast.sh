@@ -74,30 +74,6 @@ main() {
     print_success "You are good to go for the future jq requirement."
   fi
 
-  # Check if AWS CLI is able to connect to AWS
-  IAM_IDENTITY=$(aws sts get-caller-identity --profile $HDE_PROFILE_NAME)
-  if [[ $? -ne 0 ]]; then
-    print_error "AWS CLI is not able to connect to AWS.  Aborting."
-    print_error "This could be caused by Netskope cert issues."
-    exit 1
-  else
-    if [[ -z $IAM_IDENTITY ]]; then
-      print_error "AWS CLI is not able to connect to AWS.  Aborting."
-      print_error "This could be caused by Netskope cert issues."
-      exit 1
-    else
-      print_success "AWS CLI is able to connect to AWS."
-      AWS_USER_ID=$(echo "$IAM_IDENTITY" | jq -r '.UserId')
-      AWS_ACCOUNT_ID=$(echo "$IAM_IDENTITY" | jq -r '.Account')
-      AWS_ARN=$(echo "$IAM_IDENTITY" | jq -r '.Arn')
-
-      print_success "AWS CLI is able to connect to AWS."
-      print_info "\tAWS User ID: $AWS_USER_ID"
-      print_info "\tAWS Account ID: $AWS_ACCOUNT_ID"
-      print_info "\tAWS ARN: $AWS_ARN"
-    fi
-  fi
-
   # Check if all expected arguments were provided
   if [[ $# -ne 5 ]]; then
     print_error "$USAGE"
@@ -132,6 +108,30 @@ main() {
       else
         print_success "Successfully logged in to $HDE_PROFILE_NAME profile."
       fi
+    fi
+  fi
+
+  # Check if AWS CLI is able to connect to AWS
+  IAM_IDENTITY=$(aws sts get-caller-identity --profile $HDE_PROFILE_NAME)
+  if [[ $? -ne 0 ]]; then
+    print_error "AWS CLI is not able to connect to AWS.  Aborting."
+    print_error "This could be caused by Netskope cert issues."
+    exit 1
+  else
+    if [[ -z $IAM_IDENTITY ]]; then
+      print_error "AWS CLI is not able to connect to AWS.  Aborting."
+      print_error "This could be caused by Netskope cert issues."
+      exit 1
+    else
+      print_success "AWS CLI is able to connect to AWS."
+      AWS_USER_ID=$(echo "$IAM_IDENTITY" | jq -r '.UserId')
+      AWS_ACCOUNT_ID=$(echo "$IAM_IDENTITY" | jq -r '.Account')
+      AWS_ARN=$(echo "$IAM_IDENTITY" | jq -r '.Arn')
+
+      print_success "AWS CLI is able to connect to AWS."
+      print_info "\tAWS User ID: $AWS_USER_ID"
+      print_info "\tAWS Account ID: $AWS_ACCOUNT_ID"
+      print_info "\tAWS ARN: $AWS_ARN"
     fi
   fi
 
