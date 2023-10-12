@@ -4,7 +4,7 @@
 # This script is meant to be run on MacOS
 
 # Variables
-DEFAULT_DEMO_AMI="PlatformDemo-1.3b" # This value should updated whenever a new AMI for the Contrast demo "golden image" is created
+DEFAULT_DEMO_AMI="PlatformDemo-1.4.0" # This value should updated whenever a new AMI for the Contrast demo "golden image" is created
 USAGE="Usage: $0 [demo version] [customer name or description] [your name] [your target AWS region] [hours to keep demo running]\n\nExample:\n$0 default 'Acme Corp' 'Sam Spade' us-west-1 2"
 VERSION=$1
 CUSTOMER=$2
@@ -24,7 +24,6 @@ PUBLIC_IP=""
 RED=$(tput setaf 1)
 GREEN=$(tput setaf 2)
 YELLOW=$(tput setaf 3)
-BLUE=$(tput setaf 6)
 WHITE=$(tput setaf 7)
 GREY=$(tput setaf 8)
 RESET=$(tput sgr0)
